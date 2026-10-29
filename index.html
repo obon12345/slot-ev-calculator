@@ -1,0 +1,59 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>機種別 想定期待値シミュレーター</title><style>:root{font-family:system-ui,'Meiryo',sans-serif;color-scheme:dark}body{background:#101827;color:#edf2fb;margin:0;padding:22px}.wrap{max-width:850px;margin:auto}h1{font-size:1.55rem}p{color:#b7c5da;line-height:1.6}.panel{background:#1c293c;padding:22px;border-radius:16px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}label{display:block;font-size:.85rem;color:#c3d0e0;margin-bottom:5px}input,select{box-sizing:border-box;width:100%;padding:12px;background:#0d1727;border:1px solid #40526c;color:white;border-radius:9px;font-size:1rem}input:focus,select:focus{outline:2px solid #5ca7ff}.results{display:grid;grid-template-columns:1fr 1fr;gap:15px}.result{background:#0e2139;border-radius:12px;padding:16px}.result strong{font-size:1.65rem;color:#8fd1ff;display:block;margin-top:8px;overflow-wrap:anywhere}.small{font-size:.83rem;color:#afbed2}.wide{grid-column:1/-1}button{padding:12px 18px;background:#295e96;color:white;border:0;border-radius:10px;cursor:pointer}button:hover{background:#3674b5}.warning{color:#ffcf84}.spec-field{display:block} .spec-field input{background:#26354a;color:#c8d6e7;cursor:not-allowed}.spec-actions{margin-top:15px}button.secondary{background:#354760}#specNote{margin-top:12px}footer{font-size:.78rem;color:#aebbd0;padding-bottom:30px}@media(max-width:550px){body{padding:12px}.panel{padding:15px}.results{grid-template-columns:1fr 1fr}.result strong{font-size:1.3rem}}</style></head><body><main class="wrap"><h1>機種別 想定期待値シミュレーター</h1><p>あなたが設定した「想定機械割」を使い、実践の通常回転数・BB・RBから想定期待値を算出します。検証データ機械割は自動的に変更しません。すべて端末内で動作します。</p><section class="panel"><label for="machine">機種</label><select id="machine"></select><div class="grid" style="margin-top:18px"><div><label>想定機械割（%）</label><input id="rate" type="number" step="0.01" value="103.5"></div><div><label>通常回転数（G）</label><input id="games" type="number" min="0" step="1" value="8000"></div><div><label>BB回数</label><input id="bb" type="number" min="0" step="1" value="30"></div><div><label>RB回数</label><input id="rb" type="number" min="0" step="1" value="20"></div><div class="spec-field"><label>通常時BET枚数</label><input id="normalBet" type="number" readonly min="0" step="1" value="3"></div><div class="spec-field"><label>ボーナス中BET枚数</label><input id="bonusBet" type="number" readonly min="0" step="1" value="2"></div><div class="spec-field"><label>BB消化G数（1回あたり）</label><input id="bbG" type="number" readonly min="0" step="1" value="20"></div><div class="spec-field"><label>RB消化G数（1回あたり）</label><input id="rbG" type="number" readonly min="0" step="1" value="10"></div><div><label>1枚あたりの換算額（円）</label><input id="yen" type="number" min="0" step="0.01" value="20"></div><div><label>実践時間（時間、任意）</label><input id="hours" type="number" min="0" step="0.1" placeholder="例：12"></div></div><p class="small" id="specNote"></p></section><section class="panel"><div class="results"><div class="result"><span>想定期待値（枚）</span><strong id="evCoins">—</strong></div><div class="result"><span>想定期待値（円）</span><strong id="evYen">—</strong></div><div class="result"><span>総投入枚数</span><strong id="total">—</strong></div><div class="result"><span>想定時給</span><strong id="hourly">—</strong></div></div><p class="small" id="breakdown"></p><p class="small">計算式：想定期待値（枚）＝［通常G × 通常BET ＋（BB回数 × BB消化G ＋ RB回数 × RB消化G）× ボーナスBET］×（想定機械割 − 100）÷ 100</p><button id="reset">選択機種の入力を初期化</button></section><footer>注意：ボーナス仕様はご指定の固定値です。画面に表示されますが編集できません。ボーナス入賞ゲームは通常Gに含まれる前提です。差枚から求めた実績ではなく、指定した想定機械割を実践投入枚数に適用した推計です。貸出・交換ギャップや現金投資の影響は換算額に含まれません。</footer></main><script>
+const specs={
+ 'キングハナハナ':{bonusBet:2,bbG:20,rbG:10},
+ 'スターハナハナ':{bonusBet:2,bbG:20,rbG:8},
+ 'ドラゴンハナハナ':{bonusBet:2,bbG:21,rbG:8},
+ 'ニューキング':{bonusBet:1,bbG:25,rbG:10},
+ 'アイムジャグラー':{bonusBet:2,bbG:20,rbG:9},
+ 'ネオアイムジャグラー':{bonusBet:2,bbG:20,rbG:9},
+ 'マイジャグラー5':{bonusBet:2,bbG:20,rbG:9}
+};
+const names=Object.keys(specs);
+const editable=['rate','games','bb','rb','yen','hours'];
+const defaults=()=>({rate:'103.5',games:'8000',bb:'30',rb:'20',yen:'20',hours:''});
+const key='slot_ev_v3_fixed';
+let saved={};
+try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+let selected=names.includes(saved.selected)?saved.selected:names[0];
+const machine=document.getElementById('machine');
+names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;machine.append(o)});
+machine.value=selected;
+const el=id=>document.getElementById(id);
+const num=id=>Number(el(id).value);
+const fmt=(n,d=2)=>Number.isFinite(n)?n.toLocaleString('ja-JP',{maximumFractionDigits:d}):'—';
+function load(){
+ const s={...defaults(),...(saved.machines?.[selected]||{})};
+ editable.forEach(id=>el(id).value=s[id]??'');
+ const spec=specs[selected];
+ el('normalBet').value=3;
+ ['bonusBet','bbG','rbG'].forEach(id=>el(id).value=spec[id]);
+ el('specNote').textContent='ボーナス仕様は機種ごとに固定されています（編集不可）。';
+ calc();
+}
+function save(){
+ saved.selected=selected;
+ saved.machines??={};
+ saved.machines[selected]=Object.fromEntries(editable.map(id=>[id,el(id).value]));
+ try{localStorage.setItem(key,JSON.stringify(saved))}catch{}
+}
+function calc(){
+ save();
+ const valid=['rate','games','bb','rb','yen'].every(id=>el(id).value.trim()!==''&&Number.isFinite(num(id)))&&['games','bb','rb','yen'].every(id=>num(id)>=0);
+ const out=(id,v)=>el(id).textContent=v;
+ if(!valid){['evCoins','evYen','total','hourly'].forEach(id=>out(id,'要入力'));out('breakdown','入力内容を確認してください。');return}
+ const spec=specs[selected];
+ const normal=num('games')*3;
+ const bonus=(num('bb')*spec.bbG+num('rb')*spec.rbG)*spec.bonusBet;
+ const total=normal+bonus;
+ const ev=total*(num('rate')-100)/100;
+ out('evCoins',fmt(ev)+' 枚');
+ out('evYen',fmt(ev*num('yen'),0)+' 円');
+ out('total',fmt(total,0)+' 枚');
+ out('hourly',num('hours')>0?fmt(ev*num('yen')/num('hours'),0)+' 円/時':'時間未入力');
+ out('breakdown',`通常時投入：${fmt(normal,0)}枚 ／ ボーナス中投入：${fmt(bonus,0)}枚`);
+}
+machine.addEventListener('change',()=>{selected=machine.value;load()});
+editable.forEach(id=>el(id).addEventListener('input',calc));
+el('reset').addEventListener('click',()=>{if(saved.machines)delete saved.machines[selected];load()});
+load();
+</script></body></html>
